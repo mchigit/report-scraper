@@ -1,0 +1,10 @@
+version: "3"
+services:
+  scraper:
+    build: .
+    entrypoint: /bin/sh
+    stdin_open: true # docker run -i
+    tty: true    
+    volumes:
+      - .:/app
+  

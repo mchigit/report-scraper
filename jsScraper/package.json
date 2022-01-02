@@ -1,0 +1,15 @@
+{
+  "name": "jsScraper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "moment": "^2.29.1",
+    "puppeteer": "^13.0.1",
+    "retry": "^0.13.1"
+  }
+}
