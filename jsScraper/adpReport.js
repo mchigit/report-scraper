@@ -1,19 +1,35 @@
 const puppeteer = require("puppeteer");
 const config = require("./config");
 
-const { getPreviousMonthStart, getPreviousMonthEnd } = require("./utils/date");
+const {
+  getPreviousMonthStart,
+  getPreviousMonthEnd,
+  getToday,
+  getCurrentMonthStart,
+  getCurrentMonthEnd,
+} = require("./utils/date");
 const { extractWindowOpenUrl } = require("./utils/strings");
 
 const adpUser = process.env.ADP_USER;
 const adpPassword = process.env.ADP_PASSWORD;
 const adpClientNum = process.env.ADP_CLIENT_NUM;
 
+const SCRAPE_DATE_TYPE = {
+  CURRENT_MONTH: "currentMonth",
+  LAST_MONTH: "lastMonth",
+  FROM_DATE: "fromDate",
+};
+
 async function login(page) {
   const user = page.$('input[name="user"]');
   const password = page.$("#Password1");
   const clientNum = page.$('input[name="clientNum"]');
 
-  await page.$eval('input[name="user"]', (el, userName) => (el.value = userName), adpUser);
+  await page.$eval(
+    'input[name="user"]',
+    (el, userName) => (el.value = userName),
+    adpUser
+  );
   await page.$eval(
     "#Password1",
     (el, adpPassword) => (el.value = adpPassword),
@@ -28,19 +44,38 @@ async function login(page) {
   await page.$eval("#Form1", (form) => form.submit());
 }
 
-async function fillInDate(page) {
-  const lastMonthStart = getPreviousMonthStart();
-  const lastMonthEnd = getPreviousMonthEnd();
+async function fillInDate(page, dateType, from) {
+  let startDate, endDate;
+
+  switch (dateType) {
+    case SCRAPE_DATE_TYPE.CURRENT_MONTH:
+      startDate = getCurrentMonthStart();
+      endDate = getCurrentMonthEnd();
+      break;
+    case SCRAPE_DATE_TYPE.LAST_MONTH:
+      startDate = getPreviousMonthStart();
+      endDate = getPreviousMonthEnd();
+      break;
+    case SCRAPE_DATE_TYPE.FROM_DATE:
+      endDate = getToday();
+      if (!from) {
+        throw new Error("A date is required.")
+      }
+      startDate = from;
+      break;
+    default:
+      throw new Error("Date type not recognized.")
+  }
 
   await page.$eval(
     'input[name="Pay Date"]',
     (el, start) => (el.value = start),
-    lastMonthStart
+    startDate
   );
   await page.$eval(
     'input[name="Pay Date2"]',
     (el, end) => (el.value = end),
-    lastMonthEnd
+    endDate
   );
 }
 
@@ -121,7 +156,7 @@ async function handleReportLinkClicked(page, reportLinks) {
   }
 }
 
-async function scrapeAdpPayRoll() {
+async function scrapeAdpPayRoll(dateType, from) {
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
@@ -144,7 +179,7 @@ async function scrapeAdpPayRoll() {
   await openLink.click();
   await page.waitForNavigation();
 
-  await fillInDate(page);
+  await fillInDate(page, dateType, from);
 
   const searchLink = await page.$('a[href="javascript:onSubmitForm();"]');
   await searchLink.click();
@@ -167,6 +202,8 @@ async function scrapeAdpPayRoll() {
   );
 
   await handleReportLinkClicked(page, reportHrefs);
+
+  console.log(`Processed ${reportHrefs.length} reports`)
 
   await browser.close();
 }
