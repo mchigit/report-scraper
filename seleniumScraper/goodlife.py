@@ -52,10 +52,10 @@ def scrapeGoodLife():
         driver.get(CONFIG.get("goodLifeUrl"))
         fillForm()
 
+        time.sleep(5)
+
         driver.find_element(By.ID, "Copy_btnSubmit3day").click()
         time.sleep(10)
-
-        # driver.find_element(By.ID, 'Copy_btnSubmit3day').click()
 
     except Exception as e:
         print(e.with_traceback())
